@@ -1,0 +1,152 @@
+%YAML 1.2
+---
+streams: # aka cameras
+
+  - name: mummocamera1
+    address: rtsp://admin:12345@10.0.0.7
+    use: true # enable / disable this stream
+    ms_pass: 125 # share a frame with the desired machine vision
+                 # process every 125 millisecond
+    interpolate: [416,416] # target [x, y] resolution that your analyzer uses
+                           # decoded frame interpolated from YUV 
+                           # directly to this target resolution before
+                           # passing it downstream to analyzer
+                           # please use your analyzer's target resolution
+    # detector: test_1 # target machine vision analyzer process
+    detector_pars:
+      tolerance: 0.5 # a parameter for the detector
+    detector: test_2
+
+  - name: mummocamera2
+    address: rtsp://admin:12345@10.0.0.7
+    use: false
+    ms_pass: 125
+    interpolate: [416,416]
+    detector: test_2
+
+vaapi: true # use the VAAPI hw acceleration / or not
+
+processes:
+
+  - name: test_1
+    # n_cache: 10 # cache this many running multiprocesses
+    n_cache: 1 # cache this many running multiprocess instances
+               # all multiprocesses are started and cached beforehand
+               # so be sure to reserve enough of them
+    max_width: 1920
+    max_height: 1080
+    # this client process can serve rgb frames to a master process
+    # max_width & max_height define the maximum image size for this sharing
+    # (uses pre-reserved shared memory)
+    datasize: 1048576
+    # this client process serves data (say, json data, images, etc.) for
+    # the websocket server.  This is the max. serialized datasize for
+    # sharing the data (1MB)
+    comment: > 
+      take a look into valkka/streamer/analyzers/test_1
+      that is where this custom analyzer lives
+
+  - name: test_2 # requires a master process of name "master_test_1"
+    # n_cache: 10 # cache this many running multiprocesses
+    n_cache: 1 # cache this many running multiprocesses
+    max_width: 1920
+    max_height: 1080
+    # this client process can serve rgb frames to a master process
+    # max_width & max_height define the maximum image size for this sharing
+    # (uses pre-reserved shared memory)
+    datasize: 1048576
+    # this client process serves data (say, json data, images, etc.) for
+    # the websocket server.  This is the max. serialized datasize for
+    # sharing the data (1MB)
+    comment: > 
+      take a look into valkka/streamer/analyzers/test_2
+      that is where this custom analyzer lives
+      this analyzer uses a master analyzer (master_test_1)
+      passes stuff to master_test_1 (yolo) only if it sees movement
+
+master_processes:
+
+  - name: master_test_1
+    n_cache: 1 # number of replicas
+               # all multiprocesses are started and cached beforehand
+               # so be sure to reserve enough of them
+    max_clients: 5 # supports this many client processes
+    datasize: 1048576
+    # this process serves results to client processes
+    # This is the max. serialized datasize for
+    # sharing the data (1MB)
+    comment: > 
+      take a look into valkka/streamer/analyzers/master_test_1
+      that is where this custom master analyzer lives
+      it is used by client analyzers (namely, test_2 analyzers)
+      and uses (tiny) yolo to detect objects
+
+
+ws_server:
+  port: 3001
+
+
+nginx:
+  use: true # use this only for demo purposes
+  # use: false
+  port: 8088
+  # path: /path/to/where/is/index
+  index: index.html
+  ws_port: 3001
+  # NOTE: the html file used is index.html in this directory
+  # ws://localhost:[ws_port]/ws/stream/{name}
+  # access cameras at: http://localhost:8088?name=mummocamera1
+
+
+logging:
+    version: 1
+    disable_existing_loggers: true
+    root:
+        level: !!python/name:logging.INFO
+        handlers: [console]
+    
+    loggers:
+        # *** Configure here your loggers ***
+        
+        #this.is.namespace: # namespace you have defined for you logger
+        #    level: !!python/name:logging.DEBUG
+        #    handlers: [console]
+        #    qualname: this.is.namespace
+        #    propagate: false
+
+        Manager: # namespace you have defined for you logger
+            level: !!python/name:logging.DEBUG
+            handlers: [console]
+            qualname: Manager
+            propagate: false
+
+        MultiServerProcess: 
+            level: !!python/name:logging.DEBUG
+            handlers: [console]
+            qualname: MultiServerProcess
+            propagate: false
+
+        AnalyzerProcess.test: 
+            level: !!python/name:logging.DEBUG
+            handlers: [console]
+            qualname: TestAnalyzerProcess.test
+            propagate: false
+
+        MasterProcess.test: 
+            level: !!python/name:logging.DEBUG
+            handlers: [console]
+            qualname: MasterProcess.test
+            propagate: false
+
+    handlers:
+      
+        console:
+            class: logging.StreamHandler
+            stream: ext://sys.stdout
+            formatter: simpleFormatter
+            level: !!python/name:logging.NOTSET
+      
+    formatters:
+        simpleFormatter:
+            format: '%(name)s - %(levelname)s - %(message)s'
+            datefmt: '%d/%m/%Y %H:%M:%S'

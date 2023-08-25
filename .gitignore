@@ -1,0 +1,12 @@
+__pycache__/
+build/
+dist/
+venv/
+*.egg-info/
+_sharedmem.cpython*
+.ipynb_checkpoints/
+Untitled*.ipynb
+.vscode/
+*.o
+*.so
+scheme.md

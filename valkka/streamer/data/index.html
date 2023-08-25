@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket and MSE demo</title>
+    </head>
+    
+    <body>
+        <video id="livestream" height="640" controls="false" autoplay="true" preload="auto">
+        <!-- video id="livestream" width="320" height="240" controls="false" autoplay="true" --> <!-- chrome: 4s latency -->
+            <!-- source src="video/jontxu.mp4" type="video/mp4" -->
+            Your browser does not support the video tag.
+        </video> 
+        <p id="message">
+            Analyzer messages appear here
+        </p>
+    </body>
+    
+    <script>
+            var message = document.getElementById("message")
+
+            // *** USER PARAMETERS ***
+            var verbose = false;
+            // var verbose = true; // enable for saturating the console ..
+            
+            var buffering_time_sec = 1; // use some reasonable value
+            
+            // *** INTERNAL PARAMETERS (don't touch unless you know what you're doing) ***
+            
+            // set mimetype and codec
+            var mimeType = "video/mp4";
+            var codecs = "avc1.4D401F"; // not needed // yes it is .. chrome requires
+            var codecPars = mimeType+';codecs="'+codecs+'"';
+            // var codecPars = mimeType;
+            
+            var streamingStarted = false; // is the sourceBuffer updateend callback active nor not
+            
+            // create media source instance
+            var ms = new MediaSource();
+            
+            // queue for incoming media packets
+            var queue = [];
+            
+            var livestream; // the HTMLMediaElement (i.e. <video> element)
+            var ws; // websocket
+            var counter = 0;
+            var seeked = false; // have have seeked manually once ..
+            
+            var sourceBuffer; // SourceBuffer instance
+            
+            var passthrough = 0;
+            
+            // *** MP4 Box manipulation functions ***
+            
+            function toInt(arr, index) { // From bytes to big-endian 32-bit integer.  Input: Uint8Array, index
+                var dv = new DataView(arr.buffer, 0);
+                // return dv.getInt32(index, true); // little endian
+                return dv.getInt32(index, false); // big endian
+            }
+
+            function toString(arr, fr, to) { // From bytes to string.  Input: Uint8Array, start index, stop index.
+                // https://developers.google.com/web/updates/2012/06/How-to-convert-ArrayBuffer-to-and-from-String
+                return String.fromCharCode.apply(null, arr.slice(fr,to));
+            }
+
+            function getBox(arr, i) { // input Uint8Array, start index
+                return [toInt(arr, i), toString(arr, i+4, i+8)]
+            }
+
+            function getSubBox(arr, box_name) { // input Uint8Array, box name
+                var i = 0;
+                res = getBox(arr, i);
+                main_length = res[0]; name = res[1]; // this boxes length and name
+                i = i + 8;
+                
+                var sub_box = null;
+                
+                while (i < main_length) {
+                    res = getBox(arr, i);
+                    l = res[0]; name = res[1];
+                    
+                    if (box_name == name) {
+                        sub_box = arr.slice(i, i+l)
+                    }
+                    i = i + l;
+                }
+                return sub_box;
+            }
+
+            function hasFirstSampleFlag(arr) { // input Uint8Array
+                // [moof [mfhd] [traf [tfhd] [tfdt] [trun]]]
+                
+                var traf = getSubBox(arr, "traf");
+                if (traf==null) { return false; }
+                
+                var trun = getSubBox(traf, "trun");
+                if (trun==null) { return false; }
+                
+                // ISO/IEC 14496-12:2012(E) .. pages 5 and 57
+                // bytes: (size 4), (name 4), (version 1 + tr_flags 3)
+                var flags = trun.slice(10,13); // console.log(flags);
+                f = flags[1] & 4; // console.log(f);
+                return f == 4;
+            }
+
+            
+            // *** THE "FUN" STARTS ***
+            
+            // ** two callbacks ** 
+            // - pushPacket : called when websocket receives data
+            // - loadPacket : called when sourceBuffer is ready for more data
+            // Both operate on a common fifo
+            
+            function pushPacket(arr) { // receives ArrayBuffer.  Called when websocket gets more data
+                // first packet ever to arrive: write directly to sourceBuffer
+                // sourceBuffer ready to accept: write directly to SourceBuffer
+                // otherwise insert to fifo
+                
+                var view   = new Uint8Array(arr);
+                if (verbose) { console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]); }
+   
+                res = getBox(view, 0);
+                main_length = res[0]; name = res[1]; // this boxes length and name
+                
+                // pass ftyp and moov, other packets only after the special moof packet has been received
+                
+                if ((name=="ftyp") && (passthrough==0)) {
+                    passthrough = passthrough + 1;
+                    console.log("got ftyp");
+                }
+                else if ((name=="moov") && (passthrough==1)) {
+                    passthrough = passthrough + 1;
+                    console.log("got moov");
+                }
+                else if ((name=="moof") && (passthrough==2)) { // name=="moof" and passthrough==false
+                    if (hasFirstSampleFlag(view)) {
+                        passthrough = passthrough + 1;
+                        console.log("got that special moof");
+                        // var p = livestream.play(); // well.. moof doesn't have any video yet ..
+                    }
+                    else {
+                        return;
+                    }
+                }
+                else if (passthrough < 3) { // wait for the correct moof box
+                    return;
+                }
+                
+                
+                // console.log(counter);
+                /*
+                if ((counter>=10) && (seeked==false)) {
+                    seeked = true;
+                    console.log("seek to end : ", livestream.buffered.end(0));
+                    livestream.fastSeek(livestream.buffered.end(0));
+                }
+                */
+                /*
+                if ((counter > 20) && (counter % 20 == 0)) { // whoa!  this works allright, but the video becomes jerky
+                    console.log("seek to end : ", livestream.buffered.end(0));
+                    livestream.fastSeek(livestream.buffered.end(0));
+                }
+                */
+                /*
+                if ((counter > 20) && (counter % 20 == 0)) { // whoa!  this works allright, but the video becomes jerky
+                    console.log("seek to end : ", livestream.buffered.end(0));
+                    livestream.fastSeek(livestream.buffered.end(0));
+                }
+                */
+                
+                if ((counter > 20) && ( (livestream.buffered.end(0)-livestream.currentTime) > buffering_time_sec)) { // works allright!
+                    console.log("seek from ", livestream.currentTime," to ", livestream.buffered.end(0));
+                    livestream.fastSeek(livestream.buffered.end(0));
+                }
+                
+                data = arr;
+                
+                if (!streamingStarted) {
+                    if (verbose) {console.log("Streaming started with", view[0], view[1], view[2], view[3], view[4]);}
+                    sourceBuffer.appendBuffer(data);
+                    streamingStarted = true;
+                    counter = counter + 1;
+                    return;
+                }
+                
+                queue.push(data); // add to the end
+                if (verbose) { console.log("queue push:", queue.length); }
+                                
+                //
+                //if (!sourceBuffer.updating) {
+                //    loadPacket();
+                //}
+                
+            }
+            
+            
+            function loadPacket() { // called when sourceBuffer is ready for more
+               if (!sourceBuffer.updating) { // really, really ready
+                    if (queue.length>0) {
+                    
+                        inp = queue.shift(); // pop from the beginning
+                        if (verbose) { console.log("queue PULL:", queue.length); }
+                    
+                        var view = new Uint8Array(inp);
+                        
+                        if (verbose) { console.log("                        writing buffer with", view[0], view[1], view[2], view[3], view[4]); }
+                        
+                        sourceBuffer.appendBuffer(inp);
+                        counter = counter + 1;
+                        }
+                    else { // the queue runs empty, so the next packet is fed directly
+                        streamingStarted = false;
+                    }
+                }
+                else { // so it was not?
+                }
+            }
+            
+            function getPageParameters() {
+                // get urlencoded parameters as a dictionary
+                var url = new URL(document.documentURI);
+                var obj = new Object()
+                for (const [key, value] of url.searchParams) {
+                    // console.log(key,":", value)
+                    obj[key] = value
+                }
+                return obj
+            }
+
+            function pushMessage(msg) {
+                console.log("got message", msg)
+                message.innerHTML=msg
+            }
+
+
+            function opened() { // now the MediaSource object is ready to go
+                // https://developer.mozilla.org/en-US/docs/Web/API/MediaSource/duration
+                // ms.duration = 0.5;
+                ms.duration = buffering_time_sec;
+                var myDuration = ms.duration;
+            
+                sourceBuffer = ms.addSourceBuffer(codecPars);
+                
+                // https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer/mode
+                var myMode = sourceBuffer.mode;
+                sourceBuffer.mode = 'sequence'; // this should re-generate the timestamps .. ?
+                // sourceBuffer.mode = 'segments';
+                
+                sourceBuffer.addEventListener("updateend",loadPacket);
+           
+                // set up the websocket
+                // ws = new WebSocket("ws://localhost/ws/kokkelis");
+                dic = getPageParameters()
+                if (!dic["name"]) {
+                    alert("Define ?name= in the end of the url")
+                    return
+                }
+                let name = dic["name"]
+                let url = new URL(window.location.href)
+                // console.log(">", url)
+                // ws = new WebSocket(`ws://localhost:8088/ws/stream/${name}`);
+                ws = new WebSocket(`ws://${url.host}/ws/stream/${name}`);
+                ws.binaryType = "arraybuffer";
+                ws.onmessage = function (event) {
+                    pushPacket(event.data);
+                };
+
+                ws = new WebSocket(`ws://${url.host}/ws/message/${name}`);
+                // ws.binaryType = "arraybuffer";
+                ws.onmessage = function (event) {
+                    pushMessage(event.data);
+                };
+
+                
+                // livestream.load(); // reset the mediaelement object.. nopes!
+            }
+            
+            
+            function startup() {
+                // add event listeners
+                // ms.addEventListener('webkitsourceopen',opened,false);
+                // ms.addEventListener('webkitsourceclose',closed,false);
+                ms.addEventListener('sourceopen',opened,false);
+                // ms.addEventListener('sourceclose',closed,false);
+                
+                
+                // get reference to video
+                // var livestream = document.getElementById('livestream');
+                livestream = document.getElementById('livestream');
+                livestream.loop = true;
+                livestream.addEventListener('error',function(e){ console.error(e); });
+            
+                // set mediasource as source of video
+                livestream.src = window.URL.createObjectURL(ms);
+            }
+            
+            
+            window.onload = function() {
+                startup();
+            }
+            
+            
+        </script>
+    
+    
+</html>
+
