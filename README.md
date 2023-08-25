@@ -13,9 +13,9 @@ With Valkka Streamer you can:
 - ..while simultaneously using "light" analyzers for classical computer vision tasks
 
 Configuration (cameras, analyzer attachment to streams, logging verbosity, etc.) is done via a single [yaml file](valkka/streamer/data/example.yaml)
-(which also serves a documentation).
+(which also serves as documentation).
 
-Valkka Streamer is an example and a template for production projects.  A typical use-case is a server doing 24/7 analysis in a server room connected to a large amount of IP cameras (and NVRs), while simultaneously writing results into a database and offering live streams and results via a web-interface.
+Valkka Streamer is an example and a template for production projects.  A typical use-case is a server doing 24/7 AI / machine vision analysis in a server room connected to a large amount of IP cameras (and NVRs), while simultaneously writing results into a database and offering live streams and results via a web-interface.
 
 Valkka Streamer's architecture is modular: implementing custom analyzers as plug-in modules into Valkka Streamer is easy and are placed in their respective subdirectories under [valkka/streamer/analyzers](valkka/streamer/analyzers)
 
@@ -88,6 +88,8 @@ Manager
         path: analyzers/master_test_1/main.py
         receives data directly from (2)
         sends messages UP
+
+    (any number of Analyzer and Master processes can be instantiated)
 
     4. MultiServerProcess
         path: multiprocess/multiserver.py
