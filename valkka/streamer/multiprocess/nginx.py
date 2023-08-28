@@ -90,9 +90,9 @@ def genConfigFile(**kwargs):
 class NGWrapper:
 
     def __init__(self, cfg):
-
-        self.tmpdir="/tmp/my_nginx_tmp"
-        self.config_file="/tmp/my_nginx_tmp/nginx.conf"
+        user = os.environ['USER']
+        self.tmpdir=f"/tmp/my_nginx_tmp_{user}"
+        self.config_file=f"/tmp/my_nginx_tmp_{user}/nginx.conf"
         self.cfg_file_st = genConfigFile(
             user=os.environ["USER"],
             tmpdir=self.tmpdir,
