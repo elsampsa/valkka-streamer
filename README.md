@@ -47,6 +47,11 @@ valkka-streamer --yaml=path/to/your/yaml/file
 
 If no yaml file is defined, the [default yaml file](valkka/streamer/data/example.yaml) is used.
 
+Get a template for your config file with:
+```
+curl https://raw.githubusercontent.com/elsampsa/valkka-streamer/main/valkka/streamer/data/example.yaml --output myconfig.yaml
+```
+
 To terminate the (interactive) program, just press ``CTRL-C``.
 
 Valkka Streamer is a stand-alone/all-in-one example and it uses nginx
@@ -55,6 +60,18 @@ as the reverse-proxy server to serve websockets.  After starting the program, yo
 http://localhost:8088?name=CAMERANAME
 ```
 where ``CAMERANAME`` is name of a camera/stream you have defined in the  [input file](valkka/streamer/data/example.yaml).
+
+If the program crashes (probably your fault), remember to run this command:
+```
+killall -9 valkka-streamer
+```
+so that no multiprocesses are left dangling & messing up your next tryout.
+
+If you get
+```
+nginx: [emerg] bind() to 0.0.0.0:8088 failed (98: Address already in use)
+```
+change the nginx port in the configuration yaml file.
 
 
 ## For developers
