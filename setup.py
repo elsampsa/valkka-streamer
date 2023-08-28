@@ -11,7 +11,8 @@ setup(
     install_requires = [
         "setproctitle", # 1.2.2 # set your process titles for easier debugging
         "PyYAML", # 5.4.1
-        "numpy" # 1.22.4
+        "numpy", # 1.22.4
+        "websockets" # 11.0.3
     ],
     include_package_data=True, # # conclusion: NEVER forget this : files get included but not installed
     # # WARNING: If you are using namespace packages, automatic package finding does not work, so use this:
