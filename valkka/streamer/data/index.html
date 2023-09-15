@@ -5,24 +5,37 @@
     </head>
     
     <body>
-        <video id="livestream" height="640" controls="false" autoplay="true" preload="auto">
-        <!-- video id="livestream" width="320" height="240" controls="false" autoplay="true" --> <!-- chrome: 4s latency -->
-            <!-- source src="video/jontxu.mp4" type="video/mp4" -->
+        <video 
+            id="livestream" 
+            height="640" 
+            controls="true" 
+            autoplay="true" 
+            muted="muted"
+            preload="auto">
+            <!-- chrome needs the "muted" attribute
+                https://stackoverflow.com/questions/49930680/how-to-handle-uncaught-in-promise-domexception-play-failed-because-the-use
+                chrome is annoying: changing these specs all the time.  Just let it f-autoplay!
+            -->
             Your browser does not support the video tag.
         </video> 
+        <p>
+            <input type="checkbox" id="greedy" checked> Greedy / low-latency
+        </p>
+        <p>
+            Analyzer message:
+        </p>
         <p id="message">
-            Analyzer messages appear here
+            [analyzer messages will appear here]
         </p>
     </body>
     
     <script>
-            var message = document.getElementById("message")
+            const message = document.getElementById("message")
+            const checkbox = document.getElementById('greedy');
 
             // *** USER PARAMETERS ***
-            var verbose = false;
-            // var verbose = true; // enable for saturating the console ..
-            
-            var buffering_time_sec = 1; // use some reasonable value
+            // verbosity levels: 0,1,2
+            var verbose = 2;
             
             // *** INTERNAL PARAMETERS (don't touch unless you know what you're doing) ***
             
@@ -32,17 +45,38 @@
             var codecPars = mimeType+';codecs="'+codecs+'"';
             // var codecPars = mimeType;
             
-            var streamingStarted = false; // is the sourceBuffer updateend callback active nor not
+            var load_callback_active = false; // is the sourceBuffer updateend callback active nor not
             
             // create media source instance
             var ms = new MediaSource();
+            /* // the relevant objects:
+            <video> element // https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement
+                .duration (read-only)
+                .fastSeek (only in firefox)
+                .currentTime (set/get)
+                .src
+                    MediaSource // https://developer.mozilla.org/en-US/docs/Web/API/MediaSource
+                        .duration(int) (read/write)
+                        .addSourceBuffer(codecpars) -> sourceBuffer
+                
+            sourceBuffer // https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer
+            */
             
             // queue for incoming media packets
+            // packets are queued here before pushing them to the media source buffer
+            // in fact, sourceBuffer does a callback that pulls packets from this queue
+            // when it's ready for more:
             var queue = [];
+            var queue_sum = 0;
+            var queue_max = 1024*1024*10; // max N MB buffer
             
+            var not_yet_started = true;
+            var max_lag = 3; // maximum lag allowed when in greedy mode
+
             var livestream; // the HTMLMediaElement (i.e. <video> element)
             var ws; // websocket
             var counter = 0;
+            var dropcounter = 0;
             var seeked = false; // have have seeked manually once ..
             
             var sourceBuffer; // SourceBuffer instance
@@ -111,104 +145,140 @@
             // Both operate on a common fifo
             
             function pushPacket(arr) { // receives ArrayBuffer.  Called when websocket gets more data
-                // first packet ever to arrive: write directly to sourceBuffer
-                // sourceBuffer ready to accept: write directly to SourceBuffer
-                // otherwise insert to fifo
-                
-                var view   = new Uint8Array(arr);
-                if (verbose) { console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]); }
-   
-                res = getBox(view, 0);
-                main_length = res[0]; name = res[1]; // this boxes length and name
-                
-                // pass ftyp and moov, other packets only after the special moof packet has been received
-                
-                if ((name=="ftyp") && (passthrough==0)) {
-                    passthrough = passthrough + 1;
-                    console.log("got ftyp");
+                if (verbose >= 3) {
+                    var view   = new Uint8Array(arr);
+                    console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]);
                 }
-                else if ((name=="moov") && (passthrough==1)) {
-                    passthrough = passthrough + 1;
-                    console.log("got moov");
-                }
-                else if ((name=="moof") && (passthrough==2)) { // name=="moof" and passthrough==false
-                    if (hasFirstSampleFlag(view)) {
-                        passthrough = passthrough + 1;
-                        console.log("got that special moof");
-                        // var p = livestream.play(); // well.. moof doesn't have any video yet ..
+                
+                // normally data is just appended to queue where it is being read by loadPacket
+                queue_sum += arr.byteLength;
+                while ((queue_sum >= queue_max) && (queue.length > 0)) {
+                    // of queue size has reached max allowed bytes, remove packet from the beginning
+                    let out=queue.shift(); // remove from beginning
+                    if ( ((dropcounter == 0) || (dropcounter % 200 == 0)) && verbose >= 1) {
+                        console.error("queue overflow: removed", out.byteLength,"bytes")
                     }
-                    else {
-                        return;
+                    queue_sum -= out.byteLength;
+                }
+                queue.push(arr); // add to end
+
+                if (!load_callback_active) {
+                    // calling loadPacket -> sourceBuffer.appendBuffer
+                    // for the first time or queue was empty
+                    // at some moment
+                    loadPacket();
+                }
+                
+                if (checkbox.checked && !(livestream.paused)) {
+                    if ((counter > 20) && ( livestream.currentTime < (livestream.buffered.end(0) - max_lag) )) {
+                        if (verbose > 1) {console.log("seek from ", livestream.currentTime," to ", livestream.buffered.end(0));}
+                        // livestream.fastSeek(livestream.buffered.end(0));
+                        livestream.currentTime = livestream.buffered.end(0);
                     }
                 }
-                else if (passthrough < 3) { // wait for the correct moof box
-                    return;
+
+                if ((counter > 20) && not_yet_started) {
+                    not_yet_started = false;
+                    if (livestream.paused) {
+                        livestream.play();
+                    }
                 }
-                
-                
-                // console.log(counter);
-                /*
-                if ((counter>=10) && (seeked==false)) {
-                    seeked = true;
-                    console.log("seek to end : ", livestream.buffered.end(0));
-                    livestream.fastSeek(livestream.buffered.end(0));
-                }
-                */
-                /*
-                if ((counter > 20) && (counter % 20 == 0)) { // whoa!  this works allright, but the video becomes jerky
-                    console.log("seek to end : ", livestream.buffered.end(0));
-                    livestream.fastSeek(livestream.buffered.end(0));
-                }
-                */
-                /*
-                if ((counter > 20) && (counter % 20 == 0)) { // whoa!  this works allright, but the video becomes jerky
-                    console.log("seek to end : ", livestream.buffered.end(0));
-                    livestream.fastSeek(livestream.buffered.end(0));
-                }
-                */
-                
-                if ((counter > 20) && ( (livestream.buffered.end(0)-livestream.currentTime) > buffering_time_sec)) { // works allright!
-                    console.log("seek from ", livestream.currentTime," to ", livestream.buffered.end(0));
-                    livestream.fastSeek(livestream.buffered.end(0));
-                }
-                
-                data = arr;
-                
-                if (!streamingStarted) {
-                    if (verbose) {console.log("Streaming started with", view[0], view[1], view[2], view[3], view[4]);}
-                    sourceBuffer.appendBuffer(data);
-                    streamingStarted = true;
-                    counter = counter + 1;
-                    return;
-                }
-                
-                queue.push(data); // add to the end
-                if (verbose) { console.log("queue push:", queue.length); }
-                                
-                //
-                //if (!sourceBuffer.updating) {
-                //    loadPacket();
-                //}
-                
+
             }
             
             
-            function loadPacket() { // called when sourceBuffer is ready for more
+            function loadPacket() { 
+                // callback: called when sourceBuffer is ready for more
+                // but for the first time and when queue didn't have
+                // anything to feed, we need to call this manually
+                // WARNING: whatever manipulation you do to sourceBuffer or ms (MediaSource), you need
+                // to exit this callback immediately
                if (!sourceBuffer.updating) { // really, really ready
-                    if (queue.length>0) {
-                    
-                        inp = queue.shift(); // pop from the beginning
-                        if (verbose) { console.log("queue PULL:", queue.length); }
-                    
-                        var view = new Uint8Array(inp);
-                        
-                        if (verbose) { console.log("                        writing buffer with", view[0], view[1], view[2], view[3], view[4]); }
-                        
-                        sourceBuffer.appendBuffer(inp);
-                        counter = counter + 1;
+                    // console.log("paska")
+
+                    if (sourceBuffer.buffered.length > 0) {
+                        const dt = sourceBuffer.buffered.end(0) - sourceBuffer.buffered.start(0); // Index or size is negative or greater than the allowed amount
+                        /* // here was experimenting:
+                        // conclusion: there is NO WAY to change the video player's timeline to reflect the new
+                        // timerange, i.e. where we have dropped some older stuff from the sourceBuffer (**)
+                        // the ms.duration must always equal to sourceBuffer.buffered.end(0), so not sure
+                        // that is the point if being able to set it..!
+                        //
+                        if (ms.duration > (dt + 1)) { // ms.duration should be dt we're off by 1 sec
+                            console.log("correcting ms.duration to", dt);
+                            //console.log(">>", ms, ms.duration);
+                            //let paska = ms.duration; ms.duration = paska; // this works ok
+                            //ms.duration = dt; // exception: "no longer usable"?
+                            // ms.duration = 15; // doesn't complain ..
+                            console.log("vittu");
+                            load_callback_active = false;
+                            return;
+                            // ms.setLiveSeekableRange(sourceBuffer.buffered.start(0), sourceBuffer.buffered.end(0)); // a practical joke?
                         }
-                    else { // the queue runs empty, so the next packet is fed directly
-                        streamingStarted = false;
+                        //*/
+                        if (dt > 60) { // (**) drop old stuff from the sourceBuffer
+                            let dt_ = 10; // drop this many secs
+                            if (verbose >= 2) {
+                                console.log("removing from", sourceBuffer.buffered.start(0), "to", sourceBuffer.buffered.start(0)+dt_);
+                            }
+                            sourceBuffer.remove(sourceBuffer.buffered.start(0), sourceBuffer.buffered.start(0)+dt_);
+                            return;
+                        }
+                    }
+
+                    if (queue.length>0) {
+                        inp = queue.shift(); // pop from the beginning
+                        queue_sum -= inp.byteLength;
+                        if (verbose >= 3) { console.log("queue PULL:", queue.length); }
+                        var view = new Uint8Array(inp);
+                        if (verbose >= 3) { console.log("                        writing buffer with", view[0], view[1], view[2], view[3], view[4]); }
+                        res = getBox(view, 0);
+                        main_length = res[0]; name = res[1]; // this boxes length and name
+                        // pass ftyp and moov, other packets only after the special moof packet has been received
+                        if ((name=="ftyp") && (passthrough==0)) {
+                            passthrough = passthrough + 1;
+                            if (verbose >=1) {console.log("got ftyp");}
+                        }
+                        else if ((name=="moov") && (passthrough==1)) {
+                            passthrough = passthrough + 1;
+                            if (verbose >=1) {console.log("got moov");}
+                        }
+                        else if ((name=="moof") && (passthrough==2)) { // name=="moof" and passthrough==false
+                            if (hasFirstSampleFlag(view)) {
+                                passthrough = passthrough + 1;
+                                if (verbose >=1) {console.log("got that special moof");}
+                            }
+                            else {
+                                return;
+                            }
+                        }
+                        else if (passthrough < 3) { // wait for the ftyp-moov-moof sequence
+                            return;
+                        }
+                        try {
+                            sourceBuffer.appendBuffer(inp)
+                        } catch (error) {
+                            console.error(error);
+                            // throw(error);
+                            sourceBuffer.removeEventListener("updateend",loadPacket);
+                            load_callback_active = true;
+                            return;
+                        };
+                        load_callback_active = true; // we added stuff into the buffer -> now this callback will be automagically called by the media source
+                        counter = counter + 1;
+                        if ((counter % 200) == 0 && (verbose >= 2)) {
+                            console.log(`sourceBuffer: ${counter} packets /`
+                            + ` Range ${sourceBuffer.buffered.start(0)} -> ${sourceBuffer.buffered.end(0)} /` 
+                            + ` Current: ${livestream.currentTime} /`
+                            + ` MS duration: ${ms.duration}`
+                            );
+                        }
+                    }
+                    else { 
+                        // the queue runs empty, so the next packet is fed directly
+                        // we're not getting this callback again
+                        // --> so pushPacket will push data directly to media streamer
+                        load_callback_active = false;
                     }
                 }
                 else { // so it was not?
@@ -234,10 +304,7 @@
 
             function opened() { // now the MediaSource object is ready to go
                 // https://developer.mozilla.org/en-US/docs/Web/API/MediaSource/duration
-                // ms.duration = 0.5;
-                ms.duration = buffering_time_sec;
-                var myDuration = ms.duration;
-            
+                // ms.duration = 0.5; // DO NOT set the duration
                 sourceBuffer = ms.addSourceBuffer(codecPars);
                 
                 // https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer/mode
@@ -270,8 +337,6 @@
                     pushMessage(event.data);
                 };
 
-                
-                // livestream.load(); // reset the mediaelement object.. nopes!
             }
             
             
@@ -288,7 +353,15 @@
                 livestream = document.getElementById('livestream');
                 livestream.loop = true;
                 livestream.addEventListener('error',function(e){ console.error(e); });
-            
+                livestream.addEventListener('play',function(){ console.error("LIVESTREAM PLAY"); });
+                livestream.addEventListener('pause',function(){ console.error("LIVESTREAM PAUSE"); });
+                livestream.addEventListener('playing',function(){ console.error("LIVESTREAM PLAYING"); });
+                livestream.addEventListener('seeked',function(){ console.error("LIVESTREAM SEEKED"); });
+                livestream.addEventListener('seeking',function(){ console.error("LIVESTREAM SEEKING"); });
+                livestream.addEventListener('stalled',function(){ console.error("LIVESTREAM STALLED"); });
+                livestream.addEventListener('suspend',function(){ console.error("LIVESTREAM SUSPEND"); });
+                livestream.addEventListener('waiting',function(){ console.error("LIVESTREAM WAITING"); });
+
                 // set mediasource as source of video
                 livestream.src = window.URL.createObjectURL(ms);
             }
