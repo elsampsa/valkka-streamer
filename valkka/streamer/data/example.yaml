@@ -3,7 +3,7 @@
 streams: # aka cameras
 
   - name: mummocamera1
-    address: rtsp://admin:12345@10.0.0.7
+    address: rtsp://admin:123456@10.0.0.4
     use: true # enable / disable this stream
     ms_pass: 125 # share a frame with the desired machine vision
                  # process every 125 millisecond
@@ -18,7 +18,7 @@ streams: # aka cameras
     detector: test_2
 
   - name: mummocamera2
-    address: rtsp://admin:12345@10.0.0.7
+    address: rtsp://admin:123456@10.0.0.4
     use: false
     ms_pass: 125
     interpolate: [416,416]

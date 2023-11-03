@@ -194,8 +194,6 @@
                 // WARNING: whatever manipulation you do to sourceBuffer or ms (MediaSource), you need
                 // to exit this callback immediately
                if (!sourceBuffer.updating) { // really, really ready
-                    // console.log("paska")
-
                     if (sourceBuffer.buffered.length > 0) {
                         const dt = sourceBuffer.buffered.end(0) - sourceBuffer.buffered.start(0); // Index or size is negative or greater than the allowed amount
                         /* // here was experimenting:
@@ -224,8 +222,7 @@
                             sourceBuffer.remove(sourceBuffer.buffered.start(0), sourceBuffer.buffered.start(0)+dt_);
                             return;
                         }
-                    }
-
+                    } // sourceBuffer.buffered.length > 0
                     if (queue.length>0) {
                         inp = queue.shift(); // pop from the beginning
                         queue_sum -= inp.byteLength;
@@ -273,14 +270,14 @@
                             + ` MS duration: ${ms.duration}`
                             );
                         }
-                    }
+                    } // if queue.length>0
                     else { 
                         // the queue runs empty, so the next packet is fed directly
                         // we're not getting this callback again
                         // --> so pushPacket will push data directly to media streamer
                         load_callback_active = false;
                     }
-                }
+                } // really, really ready
                 else { // so it was not?
                 }
             }
@@ -311,7 +308,6 @@
                 var myMode = sourceBuffer.mode;
                 sourceBuffer.mode = 'sequence'; // this should re-generate the timestamps .. ?
                 // sourceBuffer.mode = 'segments';
-                
                 sourceBuffer.addEventListener("updateend",loadPacket);
            
                 // set up the websocket
@@ -325,6 +321,7 @@
                 let url = new URL(window.location.href)
                 // console.log(">", url)
                 // ws = new WebSocket(`ws://localhost:8088/ws/stream/${name}`);
+                
                 ws = new WebSocket(`ws://${url.host}/ws/stream/${name}`);
                 ws.binaryType = "arraybuffer";
                 ws.onmessage = function (event) {

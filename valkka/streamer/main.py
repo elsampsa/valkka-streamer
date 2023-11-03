@@ -129,7 +129,10 @@ class Manager(MainContext):
             self.logger.warning("using standalone nginx process")
             if "path" not in self.cfg["nginx"]:
                 self.cfg["nginx"]["path"] = getDataPath()
-            print("\nHTTP SERVED AT",f'http://localhost:{self.cfg["nginx"]["port"]}',"\n")
+            print("\nHTTP SERVED AT\n" 
+                f'http://localhost:{self.cfg["nginx"]["port"]}/basic\n'
+                f'http://localhost:{self.cfg["nginx"]["port"]}/cute\n'
+            )
             self.nginx = NGWrapper(self.cfg["nginx"])
         else:
             self.nginx = None

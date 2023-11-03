@@ -1,0 +1,76 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="alex"></div>
+<div id="bob"></div>
+<div id="billboard"></div>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+import { BallPlayer2, BillBoard2 } from './ballplayer2.js';
+import { StateWidget } from './statemanager.js'
+
+class MyStateWidget extends StateWidget {
+    validateInitialState() { // how to form the initial state
+        if ((this.cache.alex == null) || 
+            (this.cache.bob == null) ||
+            (this.cache.billboard == null)) {
+                this.cache.alex = '0'
+                this.cache.bob = '1'
+                this.cache.billboard = '0'
+            }
+    }
+}
+
+var alex = new BallPlayer2("alex");
+var bob = new BallPlayer2("bob");
+var billboard = new BillBoard2("billboard")
+var state = new MyStateWidget("state")
+
+alex.setLogLevel(-1)
+bob.setLogLevel(-1)
+billboard.setLogLevel(-1)
+state.setLogLevel(-1)
+
+// connect alex, bob and billboard's state_change signal
+// to state's state_change_slot
+state.register(alex, bob, billboard);
+
+// ball from alex to bob
+alex.signals.throw_ball.connect(
+    bob.catch_ball_slot.bind(bob)
+)
+// ball from bob to alex
+bob.signals.throw_ball.connect(
+    alex.catch_ball_slot.bind(alex)
+)
+// inform billboard about the game
+// alex throws
+alex.signals.throw_ball.connect(
+    billboard.ball_throw_slot.bind(billboard)
+)
+// bob throws
+bob.signals.throw_ball.connect(
+    billboard.ball_throw_slot.bind(billboard)
+)
+
+// NOTE: order of the following calls (1, 2) is important
+// as you want to update the state information _before_ it is saved
+// into the url address bar
+
+state.connectStateChanges() // (1)
+
+// when the URL address serialize state is updated:
+billboard.signals.state_change.connect( // (2)
+    state.state_save_slot.bind(state)
+)
+
+</script>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="test-element", class="card-body"></div>
+
+<button id="test-button">test something</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+// define mock data if you need that
+// mock data
+var datum = [
+    {
+        "uuid": "123456",
+        "name": "John",
+        "surname": "Doe",
+        "email": "john.doe@gmail.com"
+    },
+    {
+        "uuid": "654321",
+        "name": "Joanna",
+        "surname": "Doe",
+        "email": "joanna.doe@gmail.com"
+    }
+]
+
+function alwaysok(par) {
+    // check functions returns true/false, null/string-explaning-the-error
+    return {value: par, error: null}
+}
+
+var datamodel = { // datamodel has metadata of all data fields
+        name: {
+            label:  "First Name",
+            help :  "The first name of the person",
+            check:  alwaysok // not really needed in this example
+        },
+        surname: {
+            label:  "Last Name",
+            help :  "The surname of the person",
+            check:  alwaysok
+        },
+        email: {
+            label:  "Email",
+            help :  "the email",
+            check:  alwaysok
+        }
+};
+
+import { DummyWidget } from './widget.js';
+import { CardWidget } from './cardwidget.js';
+var dummy_widget = new DummyWidget();
+var widget = new CardWidget("test-element");
+
+widget.setLogLevel(-1); // debugging
+
+// connect signals // this widget doesn't emit any signals
+/*widget.signals.signal_name.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+*/
+
+// test your slots
+widget.datamodel_slot(datamodel)
+
+let button = document.getElementById("test-button");
+
+button.onclick = () => {
+    widget.current_datum_slot(datum[0]);
+};
+
+</script>

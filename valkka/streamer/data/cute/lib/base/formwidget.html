@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="test-element">
+</div>
+
+<button id="create">Create</button>
+<button id="update">Update</button>
+<button id="set-datum">Send mock data</button>
+<button id="clear-datum">Send null data</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+function checkStr(par) {
+    // returns value, error-msg
+    const str = String(par)
+    if (str.length < 1) {
+        return {value: null, error: "Empty"}
+    }
+    return {value: str, error: null}
+}
+
+function checkNumber(par) {
+    const str = String(par)
+    if (str.length < 1) {
+        return {value: null, error: "Empty"}
+    }
+    const num = Number(str);
+    if (isNaN(num)) {
+        return {value: null, error: "Numeric value required"}
+    }
+    return {value: num, error: null}
+}
+
+
+// mock data
+var datamodel = { // datamodel has metadata of all data fields
+        name: {
+            label:  "First Name",
+            help :  "The first name of the person",
+            check:  checkStr
+        },
+        surname: {
+            label:  "Last Name",
+            help :  "The surname of the person",
+            check:  checkStr
+        },
+        email: {
+            label:  "Email",
+            help :  "the email",
+            check:  checkStr
+        },
+        age: {
+            label: "Age",
+            help : "Age of the person in years",
+            check: checkNumber
+        }
+};
+
+var data = [
+    {
+        "uuid": "123456",
+        "name": "John",
+        "surname": "Doe",
+        "email": "john.doe@gmail.com",
+        "age": 51
+    },
+    {
+        "uuid": "654321",
+        "name": "Joanna",
+        "surname": "Doe",
+        "email": "joanna.doe@gmail.com",
+        "age": 18
+    }
+]
+
+import { DummyWidget } from './widget.js';
+import { FormWidget } from './formwidget.js';
+var dummy_widget = new DummyWidget();
+var widget = new FormWidget("test-element", "User Data");
+
+widget.setLogLevel(-1); // debugging
+
+// connect signals
+widget.signals.create.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+widget.signals.update.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+
+widget.datamodel_slot(datamodel); // tell form what data to expect
+
+let create = document.getElementById("create");
+let update = document.getElementById("update");
+let set = document.getElementById("set-datum");
+let clear = document.getElementById("clear-datum");
+
+create.onclick = () => {
+    widget.create_slot();
+};
+update.onclick = () => {
+    widget.update_slot();
+};
+set.onclick = () => {
+    widget.current_datum_slot(data[0]);
+};
+clear.onclick = () => {
+    widget.current_datum_slot(null);
+};
+
+</script>

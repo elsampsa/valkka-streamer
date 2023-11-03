@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="test-element">
+No text here yet
+</div>
+
+<button id="test-button-mem">render from memory</button>
+<button id="test-button-file">render from file</button>
+<button id="test-button-file-orig">render from file 2</button>
+<button id="test-button-file-bad">render from non-existent-file</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+<script src="../include/marked/js/marked.min.js"></script>
+
+<script type="module">
+
+var data = `
+# Marked
+
+## About
+
+Marked is a markdown renderer with *italic* and **bold**
+
+Checkout the documention in [here](https://marked.js.org/)
+`
+var fname = "./test.md"
+
+import { Marked } from './marked.js';
+import { DummyWidget } from '../base/widget.js';
+var dummy_widget = new DummyWidget();
+var widget = new Marked("test-element");
+
+widget.signals.file_read_ok.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+widget.signals.file_read_error.connect(
+    dummy_widget.slot.bind(dummy_widget)
+);
+
+widget.setLogLevel(-1); // debugging
+
+let button_mem = document.getElementById("test-button-mem"); // markdown from memory
+let button_file = document.getElementById("test-button-file"); // markdown from relative path
+let button_file_orig = document.getElementById("test-button-file-orig"); // markdown from origin path
+let button_file_bad = document.getElementById("test-button-file-bad"); // non-existent filename
+
+button_mem.onclick = () => {
+    widget.render_string_slot(data);
+};
+button_file.onclick = () => {
+    widget.render_file_slot(fname);
+};
+button_file_orig.onclick = () => {
+    widget.render_file_origin_slot(fname);
+};
+button_file_bad.onclick = () => {
+    widget.render_file_slot('nada');
+};
+
+</script>

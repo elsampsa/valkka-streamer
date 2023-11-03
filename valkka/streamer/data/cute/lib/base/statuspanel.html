@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>StatusPanel Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- TODO: put correct html element here -->
+<table id="test-element" class="table"></table>
+
+<button id="ok-button-kikkelis">OK kikkelis</button>
+<button id="error-button-kikkelis">ERROR kikkelis</button>
+<button id="ok-button-kokkelis">OK kokkelis</button>
+<button id="error-button-kokkelis">ERROR kokkelis</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+// define mock data if you need that
+//var data = [
+//];
+
+import { DummyWidget } from './widget.js';
+import { StatusPanel } from './statuspanel.js';
+var dummy_widget = new DummyWidget();
+var widget = new StatusPanel("test-element");
+
+widget.setLogLevel(-1); // debugging
+
+widget.setItems("kikkelis","kokkelis")
+
+// connect signals
+widget.signals.clicked.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+
+let ok_kikkelis     = document.getElementById("ok-button-kikkelis");
+let error_kikkelis  = document.getElementById("error-button-kikkelis");
+let ok_kokkelis     = document.getElementById("ok-button-kokkelis");
+let error_kokkelis  = document.getElementById("error-button-kokkelis");
+
+ok_kikkelis.onclick = () => {
+    widget.ok_slot("kikkelis")
+};
+error_kikkelis.onclick = () => {
+    widget.error_slot("kikkelis")
+};
+ok_kokkelis.onclick = () => {
+    widget.ok_slot("kokkelis")
+};
+error_kokkelis.onclick = () => {
+    widget.error_slot("kokkelis")
+};
+</script>

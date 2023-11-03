@@ -1,0 +1,138 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<title>Valkka Streamer Demo App</title>
+<link href="./lib/bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+    }
+
+    @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+        }
+    }
+</style>
+<!-- Custom styles for this template -->
+<link href="./css/starter-template.css" rel="stylesheet">
+</head>
+
+<body>
+<div class="col-lg-8 mx-auto p-3 py-md-5">
+    <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+        <img src="assets/logo.png" width="60px">
+        <span class="fs-4">&nbsp Valkka Streamer </span>
+        </a>
+    </header>
+    
+    <main>
+        <h1>IP Camera Stream</h1>
+
+        <p class="g-5 col-md-8">
+            Please try the control_buttons to pan and zoom and go back in time
+        </p>
+        <video 
+            hidden="true"
+            id="streamer" 
+            height="640" 
+            control_buttons="true" 
+            autoplay="true" 
+            muted="muted"
+            preload="auto">
+            <!-- chrome needs the "muted" attribute
+                https://stackoverflow.com/questions/49930680/how-to-handle-uncaught-in-promise-domexception-play-failed-because-the-use
+                chrome is annoying: changing these specs all the time.  Just let it f-autoplay!
+            -->
+            Your browser does not support the video tag.
+        </video>
+        <canvas
+            id="video-canvas"
+            width="840px"
+            height="468px"
+        >
+        </canvas>
+        <div id="control-buttons"></div>
+
+    </main>
+    <footer class="pt-5 my-5 text-muted border-top">
+        &copy; 2023 Sampsa Riikonen
+    </footer>
+    </div>
+
+    <div id="popup-form"></div>
+    
+</body>
+
+<script src="./lib/bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+import { getPageParameters } from './lib/base/widget.js';
+import { ControlButtons } from './app/controlbuttons.js';
+import { Streamer } from './app/streamer.js';
+import { VideoCanvas } from './app/videocanvas.js';
+// import { CuteAlert } from './app/cutealert.js'; // TODO
+
+var ws_adr="ws://localhost:8088/ws/stream/mummocamera1"
+
+var streamer = new Streamer("streamer", ws_adr);
+var video_canvas = new VideoCanvas("video-canvas");
+var control_buttons = new ControlButtons("control-buttons")
+
+streamer.setLogLevel(-1); // debugging
+
+let pars=getPageParameters()
+console.log("page url-encoded parameters:", pars)
+
+/* Connect signals from control buttons */
+control_buttons.signals.plus.connect(
+    video_canvas.plus_slot.bind(video_canvas)
+)
+control_buttons.signals.minus.connect(
+    video_canvas.minus_slot.bind(video_canvas)
+)
+control_buttons.signals.left.connect(
+    video_canvas.left_slot.bind(video_canvas)
+)
+control_buttons.signals.right.connect(
+    video_canvas.right_slot.bind(video_canvas)
+)
+control_buttons.signals.down.connect(
+    video_canvas.down_slot.bind(video_canvas)
+)
+control_buttons.signals.up.connect(
+    video_canvas.up_slot.bind(video_canvas)
+)
+control_buttons.signals.home.connect(
+    video_canvas.home_slot.bind(video_canvas)
+)
+//
+control_buttons.signals.fw.connect(
+    () => {
+        streamer.seek.bind(streamer)(1)
+    }
+)
+control_buttons.signals.bw.connect(
+    () => {
+        streamer.seek.bind(streamer)(-1)
+    }
+)
+/* Connect signals from streamer */
+streamer.signals.video_element.connect(
+    video_canvas.set_video_element_slot.bind(video_canvas)
+)
+streamer.signals.offset.connect(
+    control_buttons.set_delay_slot.bind(control_buttons)
+)
+
+
+
+</script>

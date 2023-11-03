@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Streamer Test</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<video 
+    id="test-element" 
+    height="640" 
+    controls="true" 
+    autoplay="true" 
+    muted="muted"
+    preload="auto">
+    <!-- chrome needs the "muted" attribute
+        https://stackoverflow.com/questions/49930680/how-to-handle-uncaught-in-promise-domexception-play-failed-because-the-use
+        chrome is annoying: changing these specs all the time.  Just let it f-autoplay!
+    -->
+    Your browser does not support the video tag.
+</video>
+<p>Offset: <div id="offset">n/a</div></p>
+<button id="fw-button">+1s</button>
+<button id="bw-button">-1s</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+/*// define mock data if you need that
+var data = [
+];
+*/
+
+var ws_adr="ws://localhost:8088/ws/stream/mummocamera1"
+
+import { DummyWidget } from '../lib/base/widget.js';
+import { Streamer } from './streamer.js';
+var dummy_widget = new DummyWidget();
+var widget = new Streamer("test-element", ws_adr);
+
+widget.setLogLevel(-1); // debugging
+// widget.setLogLevel(-2); // debugging
+
+let offset = document.getElementById("offset");
+let fw_button = document.getElementById("fw-button");
+let bw_button = document.getElementById("bw-button");
+
+// connect signals
+widget.signals.video_element.connect(
+    dummy_widget.slot.bind(dummy_widget)
+)
+widget.signals.offset.connect(
+    (par) => {
+        offset.innerHTML=par;
+    }
+)
+fw_button.onclick = () => {
+    widget.seek_slot(1);
+};
+bw_button.onclick = () => {
+    widget.seek_slot(-1);
+};
+
+</script>

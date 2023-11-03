@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="test-element"></div>
+
+<button id="send-datum">send datum</button>
+<button id="send-null">send null datum</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+// mock data
+var datum = [
+    {
+        "uuid": "123456",
+        "name": "John",
+        "surname": "Doe",
+        "email": "john.doe@gmail.com"
+    },
+    {
+        "uuid": "654321",
+        "name": "Joanna",
+        "surname": "Doe",
+        "email": "joanna.doe@gmail.com"
+    }
+]
+
+import { DummyWidget } from './widget.js';
+import { CrudButtonsWidget } from './crudbuttonswidget.js';
+var dummy_widget = new DummyWidget();
+var widget = new CrudButtonsWidget("test-element");
+
+widget.setLogLevel(-1); // debugging
+
+// connect signals
+widget.signals.create.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+widget.signals.update.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+widget.signals.delete.connect(
+    dummy_widget.slot.bind(dummy_widget) // simply dumps the signal data to the console
+);
+
+// test your slots
+
+let send_datum = document.getElementById("send-datum");
+let send_null = document.getElementById("send-null");
+
+send_datum.onclick = () => {
+    widget.current_datum_slot(datum[0]);
+};
+
+send_null.onclick = () => {
+    widget.current_datum_slot(null);
+};
+
+</script>

@@ -1,0 +1,49 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>ListWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="alex"></div>
+<div id="bob"></div>
+<div id="billboard"></div>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+import { BallPlayer, BillBoard } from './ballplayer.js';
+
+var alex = new BallPlayer("alex");
+var bob = new BallPlayer("bob");
+var billboard = new BillBoard("billboard")
+
+alex.setLogLevel(-1)
+bob.setLogLevel(-1)
+billboard.setLogLevel(-1)
+
+// ball from alex to bob
+alex.signals.throw_ball.connect(
+    bob.catch_ball_slot.bind(bob)
+)
+// ball from bob to alex
+bob.signals.throw_ball.connect(
+    alex.catch_ball_slot.bind(alex)
+)
+// inform billboard about the game
+// alex throws
+alex.signals.throw_ball.connect(
+    billboard.ball_throw_slot.bind(billboard)
+)
+// bob throws
+bob.signals.throw_ball.connect(
+    billboard.ball_throw_slot.bind(billboard)
+)
+
+// give ball initially to alex
+alex.catch_ball_slot()
+
+</script>

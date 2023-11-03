@@ -15,7 +15,7 @@ def genConfigFile(**kwargs):
     :param user: unix_user_name
     :param main_port: 8088
     :param root_dir: /path/to/dir
-    :param index: index.html
+    # :param indexes: {"main" : index.html, .. } # nopes
     :param backend_slug: api_v1
     :param frontend: frontend
     :param backend: backend
@@ -26,6 +26,7 @@ def genConfigFile(**kwargs):
         nginx tells browser not to cache content
 
     """
+
     if ("no_cache" in kwargs) and (kwargs["no_cache"] is True):
         cache_control_part="""
         # tell browser to not use cache
@@ -38,8 +39,30 @@ def genConfigFile(**kwargs):
     else:
         cache_control_part=""
 
+    location = """
+    location /{dir} {{
+            root   {root_dir};
+            index  {file};
+            client_max_body_size  500m;
+            {cache_control_part}
+        }}
+    """
+    locations=""
+    locations += location.format(
+        dir="", file="index.html", root_dir=kwargs["root_dir"], cache_control_part = cache_control_part
+    )
+
+    """really no advantage in this..
+    for dir, file in kwargs["indexes"].items():
+        print(">>>", dir, file)
+        locations += location.format(
+            dir=dir, file=file, root_dir=kwargs["root_dir"], cache_control_part = cache_control_part
+        )
+    """
+
     if "no_cache" in kwargs: kwargs.pop("no_cache")
     kwargs["cache_control_part"] = cache_control_part
+    kwargs["locations"] = locations
 
     return """user {user};
     worker_processes  1;
@@ -63,12 +86,7 @@ def genConfigFile(**kwargs):
         server {{
             listen {main_port};  # nginx listening in this port
 
-            location / {{
-                root   {root_dir};
-                index  {index};
-                client_max_body_size  500m;
-                {cache_control_part}
-            }}
+            {locations}
 
             location /{backend_slug}/ {{
                 client_max_body_size            500m;
@@ -98,7 +116,6 @@ class NGWrapper:
             tmpdir=self.tmpdir,
             main_port=cfg["port"],
             root_dir=cfg["path"],
-            index=cfg["index"],
             backend_slug="api_v1",
             frontend="localhost",
             backend="localhost",

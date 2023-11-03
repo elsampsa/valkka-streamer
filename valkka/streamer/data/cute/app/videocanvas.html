@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Canvas Test</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<canvas
+    id="test-element"
+    width="840px"
+    height="468px"
+>
+</canvas>
+<div>
+<button id="plus">+</button>
+<button id="minus">-</button>
+<button id="left">left</button>
+<button id="right">right</button>
+<button id="up">up</button>
+<button id="down">down</button>
+<button id="home">home</button>
+</div>
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+/*// define mock data if you need that
+var data = [
+];
+*/
+
+import { DummyWidget } from '../lib/base/widget.js';
+import { VideoCanvas } from './videocanvas.js';
+var dummy_widget = new DummyWidget();
+var widget = new VideoCanvas("test-element");
+
+widget.setLogLevel(-1); // debugging
+// widget.setLogLevel(-2); // debugging
+
+const plus = document.getElementById('plus');
+const minus = document.getElementById('minus');
+const left = document.getElementById('left');
+const right = document.getElementById('right');
+const up = document.getElementById('up');
+const down = document.getElementById('down');
+const home = document.getElementById('home');
+plus.onclick = () => {
+    widget.plus_slot();
+}
+minus.onclick = () => {
+    widget.minus_slot();
+}
+left.onclick = () => {
+    widget.left_slot();
+}
+right.onclick = () => {
+    widget.right_slot();
+}
+up.onclick = () => {
+    widget.up_slot();
+}
+down.onclick = () => {
+    widget.down_slot();
+}
+home.onclick = () => {
+    widget.home_slot();
+}
+
+
+</script>

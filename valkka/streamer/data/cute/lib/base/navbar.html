@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Navbar Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- NOTE: navbar behaviour: fixer or not, is defined by choosing the correct .css file -->
+<!--link href="./navbar-offcanvas.css" rel="stylesheet"-->
+<link href="./navbar-fixed.css" rel="stylesheet">
+</head>
+<body>
+
+<nav id="test-element" class="navbar-dark bg-dark"></nav>
+  
+<button id="test-button">test something</button>
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+import { DummyWidget } from './widget.js';
+import { Navbar, Navitem } from './navbar.js';
+var dummy_widget = new DummyWidget();
+var navbar = new Navbar("test-element","Navigation Bar");
+// var navbar = new Navbar("test-element","Navigation Bar", "fixed-top navbar-dark bg-primary");
+// var navbar = new Navbar("test-element","Navigation Bar", "fixed-top navbar-light","#e3f2fd");
+navbar.setLogLevel(-1); // debugging
+
+// TODO: disable, active, etc. slots
+/*
+navbar
+
+- content 1
+- content 2
+...
+
+depending on navbar clicks only one of the contents is visible
+
+easy: each content is a custom widget with it's own html & js
+
+content 1:
+- widget: a subnavbar to choose (sub)categories (tba)
+- widget: a list of centered cards (into lib subdir "layout/"?)
+    - each card is a widget
+        card: description, thumbs up & down, link to relevant news
+    - created as per datasource call
+- widget: a pop-up asking if really want to vote
+
+content 2:
+    - md articles 
+    - different articles triggered as per navbar submenu
+
+content 3:
+    - login (tba)
+
+*/
+
+var navi2 = new Navitem("bar");
+var navi1 = new Navitem("foo");
+    var navi11 = new Navitem("foo11");
+    var navi12 = new Navitem("foo12");
+    /* // deeply nested navbars don't work..
+        var navi121 = new Navitem("foo121");
+        navi12.setItems(navi121);
+    */
+    navi1.setItems(navi11, navi12);
+
+navbar.setItems(navi1, navi2)
+
+navbar.signals.clicked.connect(
+    () => {console.log("navbar")}
+);
+navi2.signals.clicked.connect(
+    () => {console.log("bar")}
+);
+navi1.signals.clicked.connect(
+    () => {console.log("foo")}
+);
+navi11.signals.clicked.connect(
+    () => {console.log("foo11")}
+);
+navi12.signals.clicked.connect(
+    () => {console.log("foo12")}
+);
+
+let button = document.getElementById("test-button");
+
+/*
+button.onclick = () => {
+    widget.some_slot();
+};
+*/
+</script>

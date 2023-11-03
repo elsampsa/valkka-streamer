@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DataSourceWidget Example</title>
+<link href="../bootstrap-5.2.3-dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<p id="dump">
+</p>
+
+<button id="create-button">Create</button>
+<button id="create-button-na">Create erroneous</button>
+<button id="update-button">Update</button>
+<button id="update-button-na">Update non-existing</button>
+<button id="delete-button">Delete</button>
+<button id="delete-button-na">Delete non-existing</button>
+
+
+</body>
+<script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+
+import { DummyWidget, DumpWidget, uuidv4 } from './widget.js';
+import { MockDataSourceWidget } from './mockdatasourcewidget.js';
+// NOTE: MockDataSourceWidget already has mock data within
+var dummy_widget = new DummyWidget();
+var dump_widget = new DumpWidget("dump")
+var widget = new MockDataSourceWidget();
+
+widget.setLogLevel(-1); // debugging
+
+let create_button = document.getElementById("create-button");
+let create_button_na = document.getElementById("create-button-na");
+let update_button = document.getElementById("update-button");
+let update_button_na = document.getElementById("update-button-na");
+let delete_button = document.getElementById("delete-button");
+let delete_button_na = document.getElementById("delete-button-na");
+
+// connect signals
+widget.signals.data.connect( // dumps all data to DOM
+    dump_widget.slot.bind(dump_widget)
+);
+widget.signals.datamodel_create.connect(
+    dump_widget.slot.bind(dump_widget)
+);
+widget.signals.datamodel_update.connect(
+    dump_widget.slot.bind(dump_widget)
+);
+widget.signals.error.connect( (message) => alert(message)  
+);
+
+create_button.onclick = () => {
+    widget.create_slot(
+        {
+        "name": "John",
+        "surname": "Doe",
+        "email": "john.doe@gmail.com",
+        "age": 51
+        }  
+    )
+};
+create_button_na.onclick = () => {
+    widget.create_slot(
+        {
+        "name": "John",
+        "surname": "Doe",
+        "email": "john.doe@gmail.com",
+        "age": "not a number indeed"
+        }  
+    )
+};
+update_button.onclick = () => {
+    let uuid = widget.data[0]["uuid"] // not part of the API & totally illegal!
+    // only used for testing
+    widget.update_slot(
+        {
+        "uuid": uuid,
+        "name": "John Updated",
+        "surname": "Doe Updated",
+        "email": "john.doe@updated_gmail.com",
+        "age": 59
+        }
+    )
+};
+update_button_na.onclick = () => {
+    widget.update_slot(
+        {
+        "uuid": "non-existent-uuid",
+        "name": "John Updated",
+        "surname": "Doe Updated",
+        "email": "john.doe@updated_gmail.com",
+        "age": 59
+        }
+    )
+};
+delete_button.onclick = () => {
+    let uuid = widget.data[0]["uuid"] // not part of the API & totally illegal!
+    // only used for testing
+    widget.delete_slot(uuid)
+};
+delete_button_na.onclick = () => {
+    widget.delete_slot("non-existent-uuid")
+};
+
+// emit data signal
+widget.read_slot()
+
+</script>

@@ -55,11 +55,20 @@ curl https://raw.githubusercontent.com/elsampsa/valkka-streamer/main/valkka/stre
 To terminate the (interactive) program, just press ``CTRL-C``.
 
 Valkka Streamer is a stand-alone/all-in-one example and it uses nginx
-as the reverse-proxy server to serve websockets.  After starting the program, you can view the live stream and analysis results in
+as the reverse-proxy server to serve websockets.  After starting the program, you can view the live stream and analysis results
+in [here](http://localhost:8088/basic?name=mummocamera1):
 ```
-http://localhost:8088?name=CAMERANAME
+http://localhost:8088/basic?name=CAMERANAME
 ```
-where ``CAMERANAME`` is name of a camera/stream you have defined in the  [input file](valkka/streamer/data/example.yaml).
+where ``CAMERANAME`` is name of a camera/stream you have defined in the [input file](valkka/streamer/data/example.yaml).
+
+Take a look at the web frontend js code in [here](valkka/streamer/data/basic/index.html).
+
+For a fancier web-frontend with digital pan, zoom and interactive time control, go [here](http://localhost:8088/cute?name=mummocamera1):
+```
+http://localhost:8088/cute?name=CAMERANAME
+```
+That web frontend js code can be found [here](valkka/streamer/data/cute/index.html).
 
 If the program crashes (probably your fault), remember to run this command:
 ```
