@@ -1,5 +1,7 @@
 # Valkka Streamer
 
+TODO: image of the web-page running
+
 *Valkka Streamer is a python-based IP camera streamer and analysis framework sponsored & brought to you by* [XactAI](http://www.xactai.com/) !
 
 It uses [libValkka](https://elsampsa.github.io/valkka-examples/_build/html/index.html) to manage IP cameras and analyzer processes.
@@ -25,6 +27,7 @@ Valkka Streamer's architecture is modular: implementing custom analyzers as plug
 *Install some required libraries*
 ```
 sudo apt-get install nginx
+sudo systemctl disable nginx
 ```
 
 *Install libValkka* as described in [here](https://elsampsa.github.io/valkka-examples/_build/html/requirements.html)
@@ -34,10 +37,21 @@ sudo apt-get install nginx
 pip3 install [--user] -e .
 ```
 
-*Install yolo*
+*Install Ultralytics Yolo*
 
-Valkka Streamer is framework agnostic when it comes to using deep-learning frameworks (tensorflow, pytorch, you name it).  Here, only for demo purposes, we use
-a minimal/stand-alone [yolo implementation](https://github.com/elsampsa/darknet-python).  So if you want the full object detection demo, you need to install that one.  However, feel completely free to replace with your framework of choice.
+Valkka Streamer is framework agnostic when it comes to using deep-learning frameworks (tensorflow, pytorch, you name it).  Here, for demo purposes only, we use [Ultralytics YoloV8](https://docs.ultralytics.com/).  You can install it with:
+```
+pip install ultralytics
+```
+Before that you might (or might not) need to install a correct version of pytorch to your system.
+
+You can quick-test your yolo installation with:
+```
+from ultralytics import YOLO
+model = YOLO('yolov8n.pt')
+model("/path/to/some/image.jpg")
+```
+Please be aware of ultralytic's licensing terms
 
 ## Usage
 
@@ -186,7 +200,7 @@ valkka/streamer/
         test_2/             # a custom analyzer with a state: upon movement
                             # send frames to master_test_1
         master_test_1/      # a custom master stateless analyzer: receives frames
-                            # from client analyzers, passes them through yolov3
+                            # from client analyzers, passes them through ultralytics yolov8
                             # and responds with results
 
     chain/
@@ -196,11 +210,39 @@ valkka/streamer/
 
     data/
         example.yaml        # an example (and the default) input file
-        index.html          # an example web frontend html file with
+        basic/
+            index.html      # an example web frontend html file with
                             # low-latency live streaming and results
                             # message streaming from the MultiServerProcess
                             # (websocket server)
+        cute/
+            index.html      # an more fancier web frontend html using
+                            # the CuteFront(tm) web frontend framework
 ```
+
+## FAQ
+
+*Can't see any stream in the browser / browser complains that it can't connect to the websocket*
+
+Please update your ``websockets`` module to the latest one with:
+```
+pip install -U websockets
+```
+
+You can also try to turn off any of the "competing" nginx (or other?) webservers with:
+```
+sudo systemctl disable nginx
+```
+
+And even turn off the ubuntu firewall:
+```
+sudo ufw disable
+```
+
+*Can't see any of those object bounding boxes in the browser*
+
+Please take a carefull look into the program logs - maybe your yolo installation doesn't work, or
+your machine is too slow to give detection results fast enough
 
 ## License
 
@@ -213,9 +255,4 @@ MIT
 ## Author(s)
 
 Sampsa Riikonen
-
-
-
-
-
 

@@ -17,49 +17,50 @@ class VideoCanvas extends Widget {
         this.video_element = video_element
         this.video_element.addEventListener('play', this.draw.bind(this), false);
     }
-    set_rois_slot(ctx) {
-        /*
-        ctx:
-            datums: a list of datums (i.e. ROIs)
-            selected: index of active ROI, -1 = no active ROI
-        */
-        //this.log(-1, "VideoCanvas: set_rois_slot", ctx)
-        //console.trace()
-        this.rois = ctx.datums
+    set_rois_slot(rois) {
+        // rois: dictionary: key: uuid, value: dict with keys left, right, top, bottom
+        this.rois = rois
         this.current_roi = null
-        this.selected = ctx.selected
-        if (ctx.selected > -1) {
-            this.current_roi = this.rois[ctx.selected]
-        }
+        this.current_roi_uuid = null
         this.redraw()
     }
-    set_selected_slot(int_) {
-        // -1: no selection
-        this.current_roi = null
-        if (int_ >= 0) {
-            this.log(-1, "set_selected_slot", int_)
-            this.current_roi = this.rois[int_]
-            this.log(-1, "set_selected_slot: current_roi", this.current_roi)
+    set_detections_slot(detections) {
+        // detections: dictionary: key: uuid, value: dict with keys left, right, top, bottom
+        this.detections = detections
+        this.redraw()
+    }
+    set_selected_slot(key) {
+        // null = no selection
+        this.current_roi = null // a copy of the selected ROI
+        this.current_roi_uuid = null // uuid of the selected ROI
+        if (key != null) {
+            if (this.rois.hasOwnProperty(key)) {
+                this.log(-1, "set_selected_slot", key)
+                this.current_roi_uuid = key
+                this.current_roi = structuredClone(this.rois[key])
+                this.log(-1, "set_selected_slot: current_roi", this.current_roi_uuid)
+            }
+            else {
+                this.log(0, "set_selected_slot: no such key", key)
+            }
         }
         this.redraw()
     }
     save_slot() {
         // the current roi under editing should be saved
         if (this.current_roi == null) {
-            this.log(-1, "VideoCanvas: save_slot no current roi!")
+            this.log(-1, "VideoCanvas: save_slot: no current roi!")
             return
         }
-        this.log(-1, "VideoCanvas: save_slot: sending current roi", this.current_roi)
-        this.signals.update.emit({
-            index: this.selected,
-            datum: {
-                uuid: this.current_roi.uuid,
+        this.log(-1, "VideoCanvas: save_slot: sending current roi", this.current_roi_uuid)
+        let dic = {}
+        dic[this.current_roi_uuid] = {
                 top: this.current_roi.top,
                 left: this.current_roi.left,
                 right: this.current_roi.right,
                 bottom: this.current_roi.bottom
             }
-        })
+        this.signals.update.emit(dic)    
     }
     // button slots
     // digital pan/zoom slots
@@ -109,9 +110,11 @@ class VideoCanvas extends Widget {
         this.set_zoom=1    // zoom (set by user)
         this.drag_state=0
         // rois & the active roi state:
-        this.rois=[]
+        this.rois=[] // list of dicts: each dict: key: uuid, value: dict: keys: left, right, top, bottom, values: floats
         this.selected = -1
-        this.current_roi=null
+        this.current_roi=null // keys: left, right, top, bottom; values: floats
+        this.current_roi_uuid=null // string
+        this.detections=[] // list of dicts: each dict: key: uuid, value: dict: keys: left, right, top, bottom, values: floats
         this.coord_save=[0, 0]
         this.video_element = null;
         // bg image:
@@ -173,21 +176,26 @@ class VideoCanvas extends Widget {
                 this.getX0(), this.getY0(), this.getWidth(), this.getHeight()
             )   
         }
-        for (var i = 0; i < this.rois.length; i++) {
-            let bbox_ = this.rois[i]
-            const [X0, Y0, X1, Y1] = this.getBBoxAbs([
-                bbox_.left,
-                bbox_.top,
-                bbox_.right,
-                bbox_.bottom
-            ])
-            this.canvas.beginPath();
-            this.canvas.lineWidth = 1;
-            this.canvas.strokeStyle = 'green';
-            this.canvas.rect(X0, Y0, X1-X0, Y1-Y0)
-            this.canvas.stroke();
-        }
-        if (this.current_roi != null) {
+        for (const [uuid, bbox_] of Object.entries(this.rois)) { // loop bbox
+            // console.log(">", uuid, this.current_roi_uuid);
+            if (uuid != this.current_roi_uuid) {
+                const [X0, Y0, X1, Y1] = this.getBBoxAbs([
+                    bbox_.left,
+                    bbox_.top,
+                    bbox_.right,
+                    bbox_.bottom
+                ])
+                this.canvas.beginPath();
+                this.canvas.lineWidth = 1;
+                this.canvas.strokeStyle = 'green';
+                this.canvas.rect(X0, Y0, X1-X0, Y1-Y0)
+                this.canvas.stroke();
+            }
+            else {
+                // console.log(">>", uuid, this.current_roi)
+            }
+        } // loop bbox
+        if (this.current_roi_uuid != null) { // highlight selected ROI
             let bbox_ = this.current_roi
             const [X0, Y0, X1, Y1] = this.getBBoxAbs([
                 bbox_.left,
@@ -198,6 +206,19 @@ class VideoCanvas extends Widget {
             this.canvas.beginPath();
             this.canvas.lineWidth = 2;
             this.canvas.strokeStyle = 'red';
+            this.canvas.rect(X0, Y0, X1-X0, Y1-Y0)
+            this.canvas.stroke();
+        }
+        for (const [uuid, bbox_] of Object.entries(this.detections)) { // loop detections
+            const [X0, Y0, X1, Y1] = this.getBBoxAbs([
+                bbox_.left,
+                bbox_.top,
+                bbox_.right,
+                bbox_.bottom
+            ])
+            this.canvas.beginPath();
+            this.canvas.lineWidth = 2;
+            this.canvas.strokeStyle = 'blue';
             this.canvas.rect(X0, Y0, X1-X0, Y1-Y0)
             this.canvas.stroke();
         }

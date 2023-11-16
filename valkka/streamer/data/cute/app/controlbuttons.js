@@ -44,7 +44,7 @@ class ControlButtons extends Widget {
         <button type="button" class="btn btn-success">&raquo</button>
         <button type="button" class="btn btn-success">&laquo</button>
         <button type="button" class="btn btn-success">
-            Delay: <span class="badge bg-secondary"></span>
+            Offset: <span class="badge bg-secondary"></span>
         </button>
         `
         // console.log("ControlButtons:", this.element.children[0])

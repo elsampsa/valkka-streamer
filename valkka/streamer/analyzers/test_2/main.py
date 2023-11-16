@@ -6,7 +6,7 @@ class AnalyzerProcess(ClientProcess):
     master_process_name ="master_test_1"
 
     def __init__(self, 
-        mstimeout = 1000, 
+        mstimeout = 1000, # internal semaphore timeout
         server_img_width = 1920, 
         server_img_height = 1080,
         name = "test",
@@ -32,7 +32,6 @@ class AnalyzerProcess(ClientProcess):
         """
         from .detector import Detector
         self.detector = Detector(**self.detector_pars)
-        self.prev_status = False
 
 
     def handleFrame__(self, frame, meta):
@@ -47,16 +46,16 @@ class AnalyzerProcess(ClientProcess):
         # send a message to the main process like this:
         # self.send_out__({})
         #
+        # self.server.pushFrame(frame, meta.slot, meta.mstimestamp); return # DEBUG
+        #
         movement = self.detector(frame)
-        if movement != self.prev_status:
-            if movement:
-                self.logger.debug("handleFrame__ : movement - will fw the frame to master process")
-                # use RGB24SERVER to send a frame to the master process:
-                # send a frame to master process (i.e. yolo and the like), only after detecting movement
-                self.server.pushFrame(frame, meta.slot, meta.mstimestamp)
-            else:
-                self.logger.debug("handleFrame__ : all (again) still")
-        self.prev_status = movement
+        if movement:
+            self.logger.debug("handleFrame__ : movement - will fw the frame to master process")
+            # use RGB24SERVER to send a frame to the master process:
+            # send a frame to master process (i.e. yolo and the like), only after detecting movement
+            self.server.pushFrame(frame, meta.slot, meta.mstimestamp)
+        else:
+            self.logger.debug("handleFrame__ : all (again) still")
 
 
     def handleMessage__(self, obj):

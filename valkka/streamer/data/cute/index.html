@@ -81,16 +81,29 @@ import { Streamer } from './app/streamer.js';
 import { VideoCanvas } from './app/videocanvas.js';
 // import { CuteAlert } from './app/cutealert.js'; // TODO
 
-var ws_adr="ws://localhost:8088/ws/stream/mummocamera1"
+/* // hardcode for debugging:
+let ws_adr="ws://localhost:8088/ws/stream/mummocamera1"
+let ws_msg_adr="ws://localhost:8088/ws/message/mummocamera1"
+*/
+let pars=getPageParameters()
+console.log("page url-encoded parameters:", pars)
+
+if (!pars["name"]) {
+    alert("Define ?name= in the end of the url")
+}
+
+let name = pars["name"]
+let url = new URL(window.location.href)
+var ws_adr=`ws://${url.host}/ws/stream/${name}`
+var ws_msg_adr=`ws://${url.host}/ws/message/${name}`
+
+console.log(ws_adr, ws_msg_adr)
 
 var streamer = new Streamer("streamer", ws_adr);
 var video_canvas = new VideoCanvas("video-canvas");
 var control_buttons = new ControlButtons("control-buttons")
 
 streamer.setLogLevel(-1); // debugging
-
-let pars=getPageParameters()
-console.log("page url-encoded parameters:", pars)
 
 /* Connect signals from control buttons */
 control_buttons.signals.plus.connect(
@@ -133,6 +146,32 @@ streamer.signals.offset.connect(
     control_buttons.set_delay_slot.bind(control_buttons)
 )
 
-
+/* Connect websocket messages to VideoCanvas */
+var ws = new WebSocket(ws_msg_adr);
+ws.onmessage = function (event) {
+    console.log("ws message", event.data)
+    let dic = JSON.parse(event.data)
+    /*
+    this depends how
+    ../../analyzers/master_test_1/main.py 
+    actually encodes the data into json
+    {"detections" : list of elements: [class_name, left, right, top, bottom]}
+    */
+    console.log("ws json", dic) //
+    var detections = dic["detections"]
+    var dets = {}
+    for (var i = 0; i < detections.length; i++) { // javascript
+        var item = detections[i]
+        dets[i.toString()] = {
+            left: item[1],
+            right: item[2],
+            top: item[3],
+            bottom: item[4]
+        }
+    }
+    console.log("final detections", dets, JSON.stringify(dets))
+    // dets = 
+    video_canvas.set_detections_slot(dets)
+};
 
 </script>

@@ -21,16 +21,50 @@
 <button id="up">up</button>
 <button id="down">down</button>
 <button id="home">home</button>
+<button id="sendrois">send ROIs</button>
+<button id="selectroi">select ROI</button>
+<button id="saveroi">save ROI</button>
+<button id="senddetections">send detections</button>
 </div>
+<p>
+NOTE: ROIs can be edited after selecting one
+</p>
 </body>
 <script src="../bootstrap-5.2.3-dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
 
-/*// define mock data if you need that
-var data = [
-];
-*/
+// define mock ROIs
+// rois are key-value pairs: key: uuid, value: the bbox
+var rois = {
+    "12345" : {
+        left: 0.1,
+        top: 0.1,
+        right: 0.5,
+        bottom: 0.5
+    },
+    "67890" : {
+        left: 0.6,
+        top: 0.6,
+        right: 0.8,
+        bottom: 0.8
+    }
+};
+
+var detections = {
+    "12345" : {
+        left: 0.2,
+        top: 0.2,
+        right: 0.55,
+        bottom: 0.55
+    },
+    "67890" : {
+        left: 0.7,
+        top: 0.7,
+        right: 0.9,
+        bottom: 0.9
+    }
+};
 
 import { DummyWidget } from '../lib/base/widget.js';
 import { VideoCanvas } from './videocanvas.js';
@@ -40,6 +74,11 @@ var widget = new VideoCanvas("test-element");
 widget.setLogLevel(-1); // debugging
 // widget.setLogLevel(-2); // debugging
 
+// connect signals
+widget.signals.update.connect(
+    dummy_widget.slot.bind(dummy_widget)
+)
+
 const plus = document.getElementById('plus');
 const minus = document.getElementById('minus');
 const left = document.getElementById('left');
@@ -47,6 +86,11 @@ const right = document.getElementById('right');
 const up = document.getElementById('up');
 const down = document.getElementById('down');
 const home = document.getElementById('home');
+const sendrois = document.getElementById('sendrois')
+const selectroi = document.getElementById('selectroi')
+const saveroi = document.getElementById('saveroi')
+const senddetections = document.getElementById('senddetections')
+
 plus.onclick = () => {
     widget.plus_slot();
 }
@@ -68,6 +112,17 @@ down.onclick = () => {
 home.onclick = () => {
     widget.home_slot();
 }
-
+sendrois.onclick = () => {
+    widget.set_rois_slot(rois);
+}
+selectroi.onclick = () => {
+    widget.set_selected_slot("12345");
+}
+saveroi.onclick = () => {
+    widget.save_slot();
+}
+senddetections.onclick = () => {
+    widget.set_detections_slot(detections);
+}
 
 </script>

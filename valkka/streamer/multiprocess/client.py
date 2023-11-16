@@ -21,7 +21,7 @@ class ClientProcess(RGB24Process):
     :param datasize: Max serialized data size for DATASERVER
     """
     def __init__(self,
-        mstimeout = 1000, 
+        mstimeout = 1000, # internal semaphore timeout
         server_img_width = 1920,
         server_img_height = 1080,
         datasize = 1024*1024*1, # 1MB

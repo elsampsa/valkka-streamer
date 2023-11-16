@@ -12,11 +12,10 @@ class MasterProcess(MessageProcess):
     :param datasize: has a sharedmem data server for communicating results back to a client 
                      process.  Maximum size of serialized data in bytes.
     """
-    def __init__(self, mstimeout = 1000, name = "master", max_clients=5, datasize=1024*1024*1):
+    def __init__(self, name = "master", max_clients=5, datasize=1024*1024*1):
         super().__init__(name=name)
         self.max_clients=max_clients
         self.registered_clients = []
-        self.mstimeout = mstimeout
         self.data_n_bytes = datasize
         self.data_n_buffer = 10
         self.eg = EventGroup(10)
@@ -101,8 +100,7 @@ class MasterProcess(MessageProcess):
             n_ringbuffer = n_ringbuffer,
             width = width,
             height = height,
-            # mstimeout = self.mstimeout,
-            mstimeout = 1,
+            mstimeout = 1, # semaphore timeout
             verbose = False
         )
         # eventfd = getEventFd(ipc_index)

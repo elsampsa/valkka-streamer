@@ -3,9 +3,9 @@
 streams: # aka cameras
 
   - name: mummocamera1
-    address: rtsp://admin:123456@10.0.0.4
+    address: rtsp://admin:123456@10.0.0.3
     use: true # enable / disable this stream
-    ms_pass: 125 # share a frame with the desired machine vision
+    ms_pass: 250 # share a frame with the desired machine vision
                  # process every 125 millisecond
     interpolate: [416,416] # target [x, y] resolution that your analyzer uses
                            # decoded frame interpolated from YUV 
@@ -18,13 +18,14 @@ streams: # aka cameras
     detector: test_2
 
   - name: mummocamera2
-    address: rtsp://admin:123456@10.0.0.4
+    address: rtsp://admin:123456@10.0.0.3
     use: false
-    ms_pass: 125
+    ms_pass: 250
     interpolate: [416,416]
     detector: test_2
 
-vaapi: true # use the VAAPI hw acceleration / or not
+# vaapi: true # use the VAAPI hw acceleration / or not
+vaapi: false # use the VAAPI hw acceleration / or not
 
 processes:
 
@@ -127,7 +128,7 @@ logging:
             propagate: false
 
         AnalyzerProcess.test: 
-            level: !!python/name:logging.DEBUG
+            level: !!python/name:logging.INFO
             handlers: [console]
             qualname: TestAnalyzerProcess.test
             propagate: false
