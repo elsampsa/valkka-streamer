@@ -1,8 +1,8 @@
 # Valkka Streamer
 
-TODO: image of the web-page running
+<img src="streamer.png" alt="streamer" height="500">
 
-*Valkka Streamer is a python-based IP camera streamer and analysis framework sponsored & brought to you by* [XactAI](http://www.xactai.com/) !
+*Valkka Streamer is a python- and web-based IP camera streamer and analysis framework sponsored & brought to you by* [XactAI](http://www.xactai.com/) !
 
 It uses [libValkka](https://elsampsa.github.io/valkka-examples/_build/html/index.html) to manage IP cameras and analyzer processes.
 
@@ -32,9 +32,9 @@ sudo systemctl disable nginx
 
 *Install libValkka* as described in [here](https://elsampsa.github.io/valkka-examples/_build/html/requirements.html)
 
-*Install this python package*
+Install *this* python package
 ```
-pip3 install [--user] -e .
+pip3 install -e .
 ```
 
 *Install Ultralytics Yolo*
@@ -48,7 +48,8 @@ Before that you might (or might not) need to install a correct version of pytorc
 You can quick-test your yolo installation with:
 ```
 from ultralytics import YOLO
-model = YOLO('yolov8n.pt')
+from valkka.streamer.tools import getDataFile
+YOLO(getDataFile('yolov8n.pt')) # uses the .pt file from the correct place
 model("/path/to/some/image.jpg")
 ```
 Please be aware of ultralytic's licensing terms
@@ -78,7 +79,8 @@ where ``CAMERANAME`` is name of a camera/stream you have defined in the [input f
 
 Take a look at the web frontend js code in [here](valkka/streamer/data/basic/index.html).
 
-For a fancier web-frontend with digital pan, zoom and interactive time control, go [here](http://localhost:8088/cute?name=mummocamera1):
+For a fancier web-frontend (using [CuteFront frontend framework](https://elsampsa.github.io/cutefront/_build/html/index.html)) 
+with digital pan, zoom and interactive time control, go [here](http://localhost:8088/cute?name=mummocamera1):
 ```
 http://localhost:8088/cute?name=CAMERANAME
 ```
@@ -86,7 +88,7 @@ That web frontend js code can be found [here](valkka/streamer/data/cute/index.ht
 
 If the program crashes (probably your fault), remember to run this command:
 ```
-killall -9 valkka-streamer
+killall -9 valkka-streamer nginx
 ```
 so that no multiprocesses are left dangling & messing up your next tryout.
 
@@ -99,8 +101,7 @@ change the nginx port in the configuration yaml file.
 
 ## For developers
 
-Instead of a "microservice" architecture, Valkka Streamer uses multiprocessing architecture, where
-multiprocesses have well-defined interfaces for intercommunication.
+Instead of a "microservice" architecture, Valkka Streamer uses [multiprocessing architecture](https://elsampsa.github.io/valkka-multiprocess/_build/html/index.html), where multiprocesses have well-defined interfaces for intercommunication.
 
 A "Manager" (the main process) instantiates and manages all multiprocesses and establishes intercommunication
 channels between them

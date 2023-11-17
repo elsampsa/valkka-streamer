@@ -3,9 +3,9 @@
 streams: # aka cameras
 
   - name: mummocamera1
-    address: rtsp://admin:123456@10.0.0.3
+    address: rtsp://root:silopassword@10.0.0.2/axis-media/media.amp
     use: true # enable / disable this stream
-    ms_pass: 250 # share a frame with the desired machine vision
+    ms_pass: 600 # share a frame with the desired machine vision
                  # process every 125 millisecond
     interpolate: [416,416] # target [x, y] resolution that your analyzer uses
                            # decoded frame interpolated from YUV 
@@ -116,13 +116,13 @@ logging:
         #    propagate: false
 
         Manager: # namespace you have defined for you logger
-            level: !!python/name:logging.DEBUG
+            level: !!python/name:logging.INFO
             handlers: [console]
             qualname: Manager
             propagate: false
 
         MultiServerProcess: 
-            level: !!python/name:logging.DEBUG
+            level: !!python/name:logging.INFO
             handlers: [console]
             qualname: MultiServerProcess
             propagate: false

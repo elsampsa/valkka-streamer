@@ -4,7 +4,10 @@ class VideoCanvas extends Widget {
     
     constructor(id) {
         super(null);
-        this.id = id // id of an HTML "canvas" element
+        // images paths: relative to the html
+        // this.bg_image="assets/dog.jpg"; // for debugging
+        this.bg_image="assets/cameras.jpg";
+        this.id = id; // id of an HTML "canvas" element
         this.createElement();
         this.createState();
     }
@@ -18,14 +21,14 @@ class VideoCanvas extends Widget {
         this.video_element.addEventListener('play', this.draw.bind(this), false);
     }
     set_rois_slot(rois) {
-        // rois: dictionary: key: uuid, value: dict with keys left, right, top, bottom
+        // rois: dictionary: key: uuid, value: dict with keys: left, right, top, bottom
         this.rois = rois
         this.current_roi = null
         this.current_roi_uuid = null
         this.redraw()
     }
     set_detections_slot(detections) {
-        // detections: dictionary: key: uuid, value: dict with keys left, right, top, bottom
+        // detections: dictionary: key: uuid, value: dict with keys: tag, left, right, top, bottom
         this.detections = detections
         this.redraw()
     }
@@ -119,7 +122,7 @@ class VideoCanvas extends Widget {
         this.video_element = null;
         // bg image:
         this.base_image = new Image();
-        this.base_image.src = "assets/cameras.jpg"; // relative to the html!
+        this.base_image.src = this.bg_image; // set in the ctor
         this.log(-1, "VideoCanvas: createState")
         // async/await: https://stackoverflow.com/questions/15333256/draw-image-on-canvas
         // onload vs. complete:
@@ -170,6 +173,7 @@ class VideoCanvas extends Widget {
             )
         }
         else {
+            this.log(-1, "redraw: base image")
             this.canvas.drawImage(
                 this.base_image, 
                 // 0, 0, this.image_width(), this.image_height()
@@ -221,6 +225,12 @@ class VideoCanvas extends Widget {
             this.canvas.strokeStyle = 'blue';
             this.canvas.rect(X0, Y0, X1-X0, Y1-Y0)
             this.canvas.stroke();
+            // Set the font style
+            this.canvas.font = "30px Arial";
+            // Set the text color
+            this.canvas.fillStyle = "blue";
+            // Write text to the canvas
+            this.canvas.fillText(bbox_.tag, X0, Y0)
         }
     } // redraw
     // canvas getters

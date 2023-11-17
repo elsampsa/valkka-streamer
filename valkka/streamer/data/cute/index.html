@@ -37,7 +37,10 @@
         <h1>IP Camera Stream</h1>
 
         <p class="g-5 col-md-8">
-            Please try the control_buttons to pan and zoom and go back in time
+            Please try the control buttons to pan and zoom and &laquo / &raquo to go back / fw in time
+        </p>
+        <p class="g-5 col-md-8">
+            Create some movement to trigger detection
         </p>
         <video 
             hidden="true"
@@ -139,9 +142,12 @@ control_buttons.signals.bw.connect(
     }
 )
 /* Connect signals from streamer */
+// if you don't want streaming video to the canvas but instead, a background
+// image (say, for debugging), just comment this connection:
 streamer.signals.video_element.connect(
     video_canvas.set_video_element_slot.bind(video_canvas)
 )
+
 streamer.signals.offset.connect(
     control_buttons.set_delay_slot.bind(control_buttons)
 )
@@ -149,7 +155,7 @@ streamer.signals.offset.connect(
 /* Connect websocket messages to VideoCanvas */
 var ws = new WebSocket(ws_msg_adr);
 ws.onmessage = function (event) {
-    console.log("ws message", event.data)
+    // console.log("ws message", event.data)
     let dic = JSON.parse(event.data)
     /*
     this depends how
@@ -157,21 +163,23 @@ ws.onmessage = function (event) {
     actually encodes the data into json
     {"detections" : list of elements: [class_name, left, right, top, bottom]}
     */
-    console.log("ws json", dic) //
+    // console.log("ws json", dic) //
     var detections = dic["detections"]
     var dets = {}
     for (var i = 0; i < detections.length; i++) { // javascript
         var item = detections[i]
         dets[i.toString()] = {
+            tag: item[0],
             left: item[1],
             right: item[2],
             top: item[3],
             bottom: item[4]
         }
     }
-    console.log("final detections", dets, JSON.stringify(dets))
+    // console.log("final detections", dets, JSON.stringify(dets))
     // dets = 
     video_canvas.set_detections_slot(dets)
 };
 
 </script>
+
