@@ -12,7 +12,7 @@ setup(
         "setproctitle", # 1.2.2 # set your process titles for easier debugging
         "PyYAML", # 5.4.1
         "numpy", # 1.22.4
-        "websockets", # 11.0.3
+        "websockets>=12.0", # 11.0.3
         "task-virtualthread",
         "Pillow", # 9.0.1
     ],

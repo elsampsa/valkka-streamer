@@ -63,7 +63,7 @@ class MasterProcess(MasterProcess_):
             self.logger.critical("predictor failed with %s", e)
             return
         names=res_.names # always the same stuff..
-        cls_=np.array(res_.boxes.cls, dtype=int).tolist()
+        cls_=np.array(res_.boxes.cls.cpu(), dtype=int).tolist()
         tags = [names[cl] for cl in cls_] # list of names of detected objects
         if len(tags) > 0: 
             self.logger.debug("handleFrame__ : dt: %s ms --> found objects: %s", dt*1000, tags)

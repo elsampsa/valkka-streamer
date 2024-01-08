@@ -51,6 +51,8 @@ from ultralytics import YOLO
 from valkka.streamer.tools import getDataFile
 YOLO(getDataFile('yolov8n.pt')) # uses the .pt file from the correct place
 model("/path/to/some/image.jpg")
+# import numpy as np
+# model(np.random.randint(0,255,size=(640,640,3))) # or with this if you don't have an image at hand
 ```
 Please be aware of ultralytic's licensing terms
 
@@ -85,6 +87,8 @@ with digital pan, zoom and interactive time control, go [here](http://localhost:
 http://localhost:8088/cute?name=CAMERANAME
 ```
 That web frontend js code can be found [here](valkka/streamer/data/cute/index.html).
+
+*If you encounter problems in viewing the live stream, the first thing is to toggle the web developer tools to see the console output.*
 
 If the program crashes (probably your fault), remember to run this command:
 ```
@@ -229,6 +233,7 @@ Please update your ``websockets`` module to the latest one with:
 ```
 pip install -U websockets
 ```
+We use the asyncio version of websockets and asyncio is (still) under constant change as per new python versions.
 
 You can also try to turn off any of the "competing" nginx (or other?) webservers with:
 ```
